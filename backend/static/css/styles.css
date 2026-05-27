@@ -1,0 +1,13 @@
+/* styles.css — PneumoScan */
+/* All styles are inlined in index.html for portability.
+   This file is retained for Flask's url_for('static') reference.
+   Add component overrides here if needed. */
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #0B0B18; }
+::-webkit-scrollbar-thumb { background: #4B44CC; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #6C63FF; }
+
+/* ── Selection ── */
+::selection { background: rgba(108,99,255,0.28); color: #EDE9FE; }

@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Patient History · Respiratory AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── TOKENS ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+:root{
+  --i:#2D6BE4;--i-l:#EBF2FF;--i-d:#1A4FA8;
+  --v:#7C3AED;--v-l:#F5F3FF;
+
+  --g:#0B9E6B;--g-l:#E6FAF4;
+  --a:#C4870A;--a-l:#FEF7E6;
+  --r:#D63B3B;--r-l:#FEF0F0;
+  --p:#6D28D9;--p-l:#F5F3FF;
+  --bg:#F4F7FF;--bg2:#E9EFF9;
+  --surf:#FFFFFF;
+  --b:#DDE3EF;--b2:#B8C5E8;
+  --t:#0E1729;--t2:#2C3A52;
+  --m:#637592;--m2:#A0AEC0;
+  --rad:14px;--sm:9px;
+  --sh:0 2px 16px rgba(45,107,228,.08),0 1px 4px rgba(0,0,0,.04);
+  --sh-lg:0 8px 32px rgba(45,107,228,.14),0 2px 8px rgba(0,0,0,.06);
+}
+
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:300;
+  background:rgba(255,255,255,.93);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--b);
+  padding:0 36px;height:62px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 1px 0 var(--b),0 2px 12px rgba(45,107,228,.05);
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,#06d6a0,#00b4d8);
+  display:grid;place-items:center;
+  box-shadow:0 3px 10px rgba(6,214,160,.32);
+  font-size:18px;
+}
+.brand-name{font-family:'DM Serif Display',serif;font-size:1.08rem;color:var(--t)}
+.brand-name span{color:var(--i)}
+.brand-sub{font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--m);line-height:1}
+.nav-div{width:1px;height:20px;background:var(--b)}
+.nav-crumb{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--m)}
+.nav-end{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-user{font-size:.78rem;color:var(--m)}
+.nav-user strong{color:var(--t2)}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font:600 .78rem 'DM Sans',sans-serif;
+  border-radius:9999px;padding:8px 18px;cursor:pointer;
+  transition:all .18s;text-decoration:none;
+  border:1px solid var(--b);background:transparent;color:var(--t2);
+}
+.btn:hover{background:var(--bg2);border-color:var(--b2)}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2}
+.btn-primary{background:var(--i);border-color:var(--i);color:#fff}
+.btn-primary:hover{background:var(--i-d);border-color:var(--i-d)}
+.btn-danger{border-color:#FECACA;color:var(--r)}
+.btn-danger:hover{background:var(--r-l)}
+
+/* ── PAGE ── */
+.page{max-width:1380px;margin:0 auto;padding:0 32px 80px}
+
+/* ── HERO ── */
+.hero{
+  position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#1A3A6E 0%,#2D6BE4 55%,#6B48E8 100%);
+  margin:0 -32px;padding:44px 32px 72px;
+}
+.hero-orb{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.06);pointer-events:none;
+}
+.hero-orb.o1{width:320px;height:320px;top:-120px;right:-60px}
+.hero-orb.o2{width:180px;height:180px;bottom:-60px;right:280px;background:rgba(255,255,255,.04)}
+.hero-orb.o3{width:80px;height:80px;top:40px;left:200px;background:rgba(255,255,255,.08)}
+.hero::after{
+  content:'';position:absolute;bottom:-2px;left:0;right:0;
+  height:42px;background:var(--bg);border-radius:42px 42px 0 0;
+}
+.hero-inner{position:relative;z-index:1;max-width:1316px;margin:0 auto}
+.hero h1{
+  font-family:'DM Serif Display',serif;
+  font-size:clamp(1.9rem,3.5vw,2.7rem);
+  color:#fff;line-height:1.15;margin-bottom:8px;
+}
+.hero h1 em{font-style:italic;opacity:.82}
+.hero p{font-size:.9rem;color:rgba(255,255,255,.68);max-width:480px}
+
+/* ── STATS ── */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;margin-top:28px;
+}
+.stat{
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--rad);padding:20px 22px;
+  box-shadow:var(--sh);display:flex;gap:14px;
+  align-items:flex-start;position:relative;overflow:hidden;
+  transition:transform .2s,box-shadow .2s;
+  animation:fadeup .5s ease both;
+}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--sh-lg)}
+.stat::after{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:3px;
+}
+.stat.s-blue::after{background:linear-gradient(90deg,var(--i),#60A5FA)}
+.stat.s-teal::after{background:linear-gradient(90deg,var(--g),#34D399)}
+.stat.s-violet::after{background:linear-gradient(90deg,var(--v),#A78BFA)}
+.stat-ico{
+  width:42px;height:42px;border-radius:10px;
+  display:grid;place-items:center;flex-shrink:0;
+}
+.stat-ico svg{width:19px;height:19px;stroke-width:1.8;fill:none;stroke:currentColor}
+.ico-blue{background:var(--i-l);color:var(--i)}
+.ico-teal{background:var(--g-l);color:var(--g)}
+.ico-violet{background:var(--v-l);color:var(--v)}
+.stat-lbl{font-size:.65rem;font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--m);margin-bottom:4px}
+.stat-val{font-size:1.9rem;font-weight:700;color:var(--t);line-height:1;margin-bottom:2px}
+.stat-sub{font-size:.7rem;color:var(--m2)}
+
+/* ── CONTROLS ── */
+.controls{
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--rad);padding:12px 16px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  margin-bottom:16px;box-shadow:var(--sh);
+  animation:fadeup .5s .08s ease both;
+}
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap svg{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  width:13px;height:13px;stroke:var(--m);fill:none;stroke-width:2;pointer-events:none;
+}
+#searchInput{
+  width:100%;padding:8px 12px 8px 32px;
+  border:1px solid var(--b);border-radius:var(--sm);
+  font:400 .83rem 'DM Sans',sans-serif;color:var(--t);
+  background:var(--bg);outline:none;transition:border-color .2s,box-shadow .2s;
+}
+#searchInput:focus{border-color:var(--b2);box-shadow:0 0 0 3px rgba(45,107,228,.1)}
+#searchInput::placeholder{color:var(--m2)}
+.ctrl-sel{
+  padding:8px 28px 8px 11px;border:1px solid var(--b);
+  border-radius:var(--sm);font:400 .83rem 'DM Sans',sans-serif;
+  color:var(--t);background:var(--bg);outline:none;appearance:none;-webkit-appearance:none;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23637592' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;background-size:13px;
+  transition:border-color .2s;
+}
+.ctrl-sel:focus{border-color:var(--b2)}
+.ctrl-count{font-size:.73rem;color:var(--m2);margin-left:auto;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+
+/* ── TABLE ── */
+.table-card{
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--rad);box-shadow:var(--sh);overflow:hidden;
+  animation:fadeup .5s .14s ease both;
+}
+.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:860px}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--b)}
+th{
+  padding:10px 15px;text-align:left;
+  font-size:.62rem;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--m);white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid rgba(221,227,239,.5);transition:background .14s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--i-l)}
+td{padding:12px 15px;font-size:.83rem;color:var(--t2);vertical-align:middle}
+
+/* patient cell */
+.pt-cell{display:flex;align-items:center;gap:10px}
+.pt-av{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--i),var(--v));
+  display:grid;place-items:center;
+  font-size:.76rem;font-weight:700;color:#fff;flex-shrink:0;
+}
+.pt-name{font-weight:600;color:var(--t)}
+.pt-id{font-size:.65rem;color:var(--m2);font-family:'JetBrains Mono',monospace}
+.date-cell{font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--m)}
+
+/* badges */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:9999px;
+  font-size:.67rem;font-weight:600;white-space:nowrap;
+}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.65;flex-shrink:0}
+.b-normal {background:var(--g-l);color:#065F46}
+.b-crackle{background:var(--a-l);color:#92400E}
+.b-wheeze {background:var(--r-l);color:#991B1B}
+.b-copd   {background:var(--p-l);color:#581C87}
+.b-default{background:var(--bg2);color:var(--m)}
+
+/* confidence */
+.conf-wrap{display:flex;align-items:center;gap:8px;min-width:120px}
+.conf-track{flex:1;height:4px;background:var(--b);border-radius:99px;overflow:hidden}
+.conf-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--i),#60A5FA)}
+.conf-val{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:600;color:var(--t2);min-width:36px;text-align:right}
+
+/* action buttons */
+.act-cell{display:flex;gap:5px;align-items:center}
+.act-btn{
+  width:28px;height:28px;border-radius:7px;
+  border:1px solid var(--b);background:var(--surf);
+  display:grid;place-items:center;cursor:pointer;
+  transition:all .16s;text-decoration:none;position:relative;
+}
+.act-btn svg{width:12px;height:12px;stroke:var(--m);fill:none;stroke-width:2}
+.act-btn:hover{border-color:var(--b2);background:var(--i-l)}
+.act-btn:hover svg{stroke:var(--i)}
+.act-btn::after{
+  content:attr(title);position:absolute;bottom:calc(100% + 5px);
+  left:50%;transform:translateX(-50%);white-space:nowrap;
+  background:var(--t);color:#fff;font-size:.62rem;
+  padding:3px 7px;border-radius:5px;
+  opacity:0;pointer-events:none;transition:opacity .14s;
+}
+.act-btn:hover::after{opacity:1}
+
+/* empty */
+.empty{text-align:center;padding:60px 24px}
+.empty-ico{
+  width:64px;height:64px;background:var(--i-l);
+  border-radius:16px;display:grid;place-items:center;
+  margin:0 auto 16px;
+}
+.empty-ico svg{width:28px;height:28px;stroke:var(--i);fill:none;stroke-width:1.5}
+.empty-title{font-size:.95rem;font-weight:700;color:var(--t);margin-bottom:6px}
+.empty-sub{font-size:.82rem;color:var(--m);max-width:280px;margin:0 auto;line-height:1.7}
+.empty-sub a{color:var(--i);text-decoration:none}
+
+/* pagination */
+.pag-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;border-top:1px solid var(--b);
+  background:var(--bg2);flex-wrap:wrap;gap:8px;
+}
+.pag-info{font-size:.73rem;color:var(--m);font-family:'JetBrains Mono',monospace}
+.pag-btns{display:flex;gap:4px}
+.pag-btn{
+  min-width:28px;height:28px;padding:0 6px;
+  border:1px solid var(--b);background:var(--surf);
+  border-radius:6px;font:500 .73rem 'DM Sans',sans-serif;
+  color:var(--t2);cursor:pointer;display:grid;place-items:center;transition:all .13s;
+}
+.pag-btn:hover:not(:disabled){border-color:var(--b2);color:var(--i);background:var(--i-l)}
+.pag-btn.active{background:var(--i);border-color:var(--i);color:#fff}
+.pag-btn:disabled{opacity:.3;cursor:not-allowed}
+.pag-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.5}
+
+/* ── AUDIO POPUP ── */
+.audio-popup{
+  position:fixed;bottom:26px;left:50%;
+  transform:translateX(-50%) translateY(130px);
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--rad);box-shadow:var(--sh-lg);
+  padding:16px 20px;width:min(440px,calc(100vw - 32px));
+  z-index:500;display:flex;flex-direction:column;gap:10px;
+  opacity:0;transition:transform .32s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+}
+.audio-popup.open{transform:translateX(-50%) translateY(0);opacity:1}
+.ap-head{display:flex;align-items:center;justify-content:space-between}
+.ap-title{font-size:.82rem;font-weight:600;color:var(--t)}
+.ap-sub{font-size:.7rem;color:var(--m)}
+.ap-close{
+  width:22px;height:22px;border-radius:50%;
+  border:1px solid var(--b);background:var(--bg2);
+  display:grid;place-items:center;cursor:pointer;transition:background .14s;
+}
+.ap-close svg{width:9px;height:9px;stroke:var(--m);fill:none;stroke-width:2.5}
+.ap-close:hover{background:var(--r-l)}
+.ap-close:hover svg{stroke:var(--r)}
+#popupAudio{width:100%;height:36px;accent-color:var(--i)}
+
+/* ── AI CHATBOT ── */
+#aiChatBtn{
+  position:fixed;bottom:26px;right:26px;z-index:900;
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#06d6a0,#00b4d8);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(6,214,160,.42);
+  transition:transform .2s,box-shadow .2s;
+}
+#aiChatBtn:hover{transform:scale(1.07);box-shadow:0 6px 28px rgba(6,214,160,.58)}
+#aiChatBtn svg{width:24px;height:24px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+#aiChatBtn .ai-badge{
+  position:absolute;top:-3px;right:-3px;
+  width:18px;height:18px;border-radius:50%;
+  background:#10B981;border:2px solid #fff;
+  font-size:8px;font-weight:700;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+#aiPanel{
+  position:fixed;bottom:92px;right:26px;z-index:901;
+  width:400px;max-width:calc(100vw - 36px);
+  background:var(--surf);border-radius:18px;
+  box-shadow:0 16px 52px rgba(0,0,0,.16),0 0 0 1px rgba(45,107,228,.08);
+  display:flex;flex-direction:column;overflow:hidden;
+  transform:translateY(18px) scale(.96);opacity:0;pointer-events:none;
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1),opacity .18s;
+  max-height:560px;
+}
+#aiPanel.open{transform:translateY(0) scale(1);opacity:1;pointer-events:all}
+.aip-head{
+  padding:15px 17px;
+  background:linear-gradient(135deg,#06d6a0,#00b4d8);
+  display:flex;align-items:center;gap:11px;
+}
+.aip-head-ico{
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:18px;
+}
+.aip-head-title{font-weight:700;color:#fff;font-size:.92rem}
+.aip-head-sub{font-size:.72rem;color:rgba(255,255,255,.72);margin-top:1px}
+.aip-close{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.75);cursor:pointer;font-size:17px;display:flex;align-items:center}
+.aip-close:hover{color:#fff}
+.aip-chips{
+  padding:9px 13px 6px;display:flex;flex-wrap:wrap;gap:5px;
+  border-bottom:1px solid var(--b);
+}
+.aip-chip{
+  padding:3px 10px;border-radius:99px;
+  background:var(--i-l);color:var(--i);
+  font-size:.72rem;font-weight:600;
+  border:1px solid #C7D2FE;cursor:pointer;transition:background .14s;white-space:nowrap;
+}
+.aip-chip:hover{background:#DBEAFE}
+.aip-messages{
+  flex:1;overflow-y:auto;padding:13px;
+  display:flex;flex-direction:column;gap:11px;min-height:180px;
+}
+.aip-msg{display:flex;gap:8px;align-items:flex-start}
+.aip-msg.user{flex-direction:row-reverse}
+.aip-av{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.68rem;font-weight:700;
+}
+.aip-msg.ai .aip-av{background:linear-gradient(135deg,#06d6a0,#00b4d8);color:#fff}
+.aip-msg.user .aip-av{background:linear-gradient(135deg,var(--g),#059669);color:#fff}
+.aip-bubble{
+  max-width:82%;padding:9px 12px;
+  border-radius:13px;font-size:.82rem;line-height:1.55;
+}
+.aip-msg.ai .aip-bubble{background:#F8FAFF;border:1px solid var(--b);color:var(--t);border-top-left-radius:3px}
+.aip-msg.user .aip-bubble{background:linear-gradient(135deg,#06d6a0,#00b4d8);color:#fff;border-top-right-radius:3px}
+.aip-chart-wrap{margin-top:9px;background:#fff;border:1px solid var(--b);border-radius:9px;padding:9px}
+.aip-chart-wrap canvas{max-height:190px!important}
+.aip-typing .aip-bubble{display:flex;gap:4px;align-items:center;padding:11px 13px}
+.aip-dot{width:6px;height:6px;border-radius:50%;background:var(--m2);animation:aip-b .9s ease-in-out infinite}
+.aip-dot:nth-child(2){animation-delay:.15s}
+.aip-dot:nth-child(3){animation-delay:.3s}
+@keyframes aip-b{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+.aip-input-row{
+  padding:9px 13px 13px;display:flex;gap:7px;
+  align-items:center;border-top:1px solid var(--b);
+}
+.aip-input-row input{
+  flex:1;padding:8px 13px;border:1.5px solid var(--b);
+  border-radius:99px;font:400 .82rem 'DM Sans',sans-serif;
+  outline:none;color:var(--t);transition:border-color .18s;
+}
+.aip-input-row input:focus{border-color:#06d6a0}
+.aip-send{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,#06d6a0,#00b4d8);
+  border:none;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;transition:opacity .18s;
+}
+.aip-send:disabled{opacity:.4;cursor:default}
+.aip-send svg{width:15px;height:15px;fill:#fff}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .nav{padding:0 16px}
+  .page{padding:0 16px 80px}
+  .hero{padding:28px 16px 56px;margin:0 -16px}
+  .nav-div,.nav-crumb{display:none}
+  .stats{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .stats{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="nav-logo">🫁</div>
+    <div>
+      <div class="brand-name">Respiratory <span>AI</span></div>
+      <div class="brand-sub">Smart Diagnostics</div>
+    </div>
+  </a>
+  <div class="nav-div"></div>
+  <span class="nav-crumb">Patient History</span>
+  <div class="nav-end">
+    <span class="nav-user" id="navUser"></span>
+    <a href="/" class="btn">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+      New Analysis
+    </a>
+    <button id="signOutBtn" class="btn btn-danger">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-orb o1"></div>
+    <div class="hero-orb o2"></div>
+    <div class="hero-orb o3"></div>
+    <div class="hero-inner">
+      <h1>Patient <em>History</em></h1>
+      <p>Complete audit log of all AI respiratory analyses — powered by Firebase Firestore.</p>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats" style="margin-top:28px">
+    <div class="stat s-blue" style="animation-delay:.04s">
+      <div class="stat-ico ico-blue">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div>
+        <div class="stat-lbl">Total Analyses</div>
+        <div class="stat-val" id="statTotal">—</div>
+        <div class="stat-sub">All time records</div>
+      </div>
+    </div>
+    <div class="stat s-teal" style="animation-delay:.09s">
+      <div class="stat-ico ico-teal">
+        <svg viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></svg>
+      </div>
+      <div>
+        <div class="stat-lbl">Today</div>
+        <div class="stat-val" id="statToday">—</div>
+        <div class="stat-sub">Analyses today</div>
+      </div>
+    </div>
+    <div class="stat s-violet" style="animation-delay:.14s">
+      <div class="stat-ico ico-violet">
+        <svg viewBox="0 0 24 24"><path d="M3 12h3l3-9 4 18 3-9h5"/></svg>
+      </div>
+      <div>
+        <div class="stat-lbl">Most Common</div>
+        <div class="stat-val" style="font-size:1rem;margin-top:4px" id="statCommon">—</div>
+        <div class="stat-sub">Top detected condition</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" style="margin-top:20px">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search patient name…" oninput="applyFilters()"/>
+    </div>
+    <select id="diseaseFilter" class="ctrl-sel" onchange="applyFilters()">
+      <option value="">All Diseases</option>
+    </select>
+    <select id="sortOrder" class="ctrl-sel" onchange="applyFilters()">
+      <option value="desc">Newest First</option>
+      <option value="asc">Oldest First</option>
+    </select>
+    <span class="ctrl-count" id="countLabel">Loading…</span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Patient</th>
+            <th>Date &amp; Time</th>
+            <th>Predicted Disease</th>
+            <th>Probability Score</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="6">
+            <div class="empty">
+              <div class="empty-ico"><svg viewBox="0 0 24 24"><path d="M3 12h3l3-9 4 18 3-9h5"/></svg></div>
+              <div class="empty-title">Loading records…</div>
+              <p class="empty-sub">Fetching patient data from Firebase Firestore.</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pag-bar" id="pagBar">
+      <span class="pag-info" id="pagInfo"></span>
+      <div class="pag-btns" id="pagBtns"></div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- AUDIO POPUP -->
+<div class="audio-popup" id="audioPopup">
+  <div class="ap-head">
+    <div>
+      <div class="ap-title" id="popupName">—</div>
+      <div class="ap-sub" id="popupDiag">—</div>
+    </div>
+    <button class="ap-close" onclick="closeAudio()">
+      <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <audio id="popupAudio" controls></audio>
+</div>
+
+<!-- AI CHAT BUTTON -->
+<button id="aiChatBtn" title="Ask AI Assistant" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24">
+    <path d="M12 2a9 9 0 0 1 9 9c0 4-2.6 7.4-6.3 8.6L12 22l-2.7-2.4C5.6 18.4 3 15 3 11A9 9 0 0 1 12 2z"/>
+    <circle cx="9" cy="11" r="1" fill="#fff" stroke="none"/>
+    <circle cx="12" cy="11" r="1" fill="#fff" stroke="none"/>
+    <circle cx="15" cy="11" r="1" fill="#fff" stroke="none"/>
+  </svg>
+  <span class="ai-badge">AI</span>
+</button>
+
+<!-- AI CHAT PANEL -->
+<div id="aiPanel">
+  <div class="aip-head">
+    <div class="aip-head-ico">🫁</div>
+    <div>
+      <div class="aip-head-title">Respiratory AI</div>
+      <div class="aip-head-sub">Ask about your patients</div>
+    </div>
+    <button class="aip-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="aip-chips">
+    <span class="aip-chip" onclick="askChip(this)">How many patients?</span>
+    <span class="aip-chip" onclick="askChip(this)">Disease distribution</span>
+    <span class="aip-chip" onclick="askChip(this)">Average probability</span>
+    <span class="aip-chip" onclick="askChip(this)">Show COPD patients</span>
+    <span class="aip-chip" onclick="askChip(this)">Recent patients</span>
+    <span class="aip-chip" onclick="askChip(this)">Summary overview</span>
+  </div>
+  <div class="aip-messages" id="aipMessages">
+    <div class="aip-msg ai">
+      <div class="aip-av">AI</div>
+      <div class="aip-bubble">
+        👋 Hello Doctor! I'm your Respiratory AI assistant.<br>
+        Ask me anything about your patients — counts, disease distributions, probability scores, or specific conditions.
+      </div>
+    </div>
+  </div>
+  <div class="aip-input-row">
+    <input id="aipInput" type="text" placeholder="Ask about your patients…" onkeydown="if(event.key==='Enter')sendMsg()"/>
+    <button class="aip-send" id="aipSend" onclick="sendMsg()">
+      <svg viewBox="0 0 24 24"><path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FIREBASE — Main module: auth + Firestore data loading
+     Sets window._doctorEmail so the chat module can read it.
+════════════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, orderBy, query, where }
+                                    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const cfg = {
+  apiKey: "AIzaSyAaEJRIVbN7kadduBIw2ULKETr0ShKysXQ",
+  authDomain: "lung-login.firebaseapp.com",
+  projectId: "lung-login",
+  storageBucket: "lung-login.firebasestorage.app",
+  messagingSenderId: "357222360735",
+  appId: "1:357222360735:web:e222d8c9b6121ae77ea4aa"
+};
+
+const app  = initializeApp(cfg);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const PER  = 10;
+let allData = [], filtered = [], cur = 1;
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = '/login'; return; }
+
+  // ── IMPORTANT: expose email globally so the chat script can read it ──
+  window._doctorEmail = user.email || '';
+
+  document.getElementById('navUser').innerHTML =
+    `<strong>${user.displayName || user.email}</strong>`;
+  document.getElementById('signOutBtn').onclick = () =>
+    signOut(auth).then(() => window.location.href = '/login');
+
+  await load(user.email);
+});
+
+async function load(uid) {
+  try {
+    const q    = query(collection(db, 'analyses'), where('doctor_uid', '==', uid), orderBy('created_at', 'desc'));
+    const snap = await getDocs(q);
+    allData    = snap.docs.map((d, i) => ({ _id: d.id, _n: i + 1, ...d.data() }));
+    buildFilter(); computeStats(); applyFilters();
+  } catch {
+    try {
+      const snap2 = await getDocs(query(collection(db, 'analyses'), where('doctor_uid', '==', uid)));
+      allData = snap2.docs
+        .map((d, i) => ({ _id: d.id, _n: i + 1, ...d.data() }))
+        .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+      buildFilter(); computeStats(); applyFilters();
+    } catch (e2) {
+      document.getElementById('tableBody').innerHTML = errHTML(e2.message);
+      document.getElementById('countLabel').textContent = 'Error';
+    }
+  }
+}
+
+function cleanDisease(raw) {
+  if (!raw) return 'Unknown';
+  let s = String(raw);
+  s = s.replace(/respiratory\s+disorder\s+detected\s*:?/gi, '');
+  s = s.replace(/predicted?\s+disorder\s+detected\s*:?/gi, '');
+  s = s.replace(/prediction\s*:?/gi, '');
+  s = s.replace(/with\s+probability/gi, '');
+  s = s.replace(/\(\s*[\d.]+\s*%\s*\)/g, '');
+  s = s.replace(/[\d.]+\s*%/g, '');
+  s = s.replace(/[,;]?\s*second.*/gi, '');
+  return s.trim();
+}
+
+function extractProb(pred) {
+  const m = String(pred || '').match(/([\d.]+)\s*%/);
+  if (!m) return 0;
+  const v = parseFloat(m[1]);
+  return Math.min(v > 1 ? v : v * 100, 100);
+}
+
+function computeStats() {
+  const today = new Date().toISOString().slice(0, 10);
+  const freq  = {};
+  allData.forEach(r => {
+    const n = cleanDisease(r.prediction);
+    if (n) freq[n] = (freq[n] || 0) + 1;
+  });
+  const top = Object.keys(freq).sort((a, b) => freq[b] - freq[a])[0] || 'N/A';
+  document.getElementById('statTotal').textContent  = allData.length;
+  document.getElementById('statToday').textContent  = allData.filter(r => (r.date || '').startsWith(today)).length;
+  document.getElementById('statCommon').textContent = top;
+}
+
+function buildFilter() {
+  const sel = document.getElementById('diseaseFilter');
+  while (sel.options.length > 1) sel.remove(1);
+  [...new Set(allData.map(r => cleanDisease(r.prediction)).filter(Boolean))].sort().forEach(d => {
+    const o = document.createElement('option');
+    o.value = o.textContent = d;
+    sel.appendChild(o);
+  });
+}
+
+window.applyFilters = function () {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const d = document.getElementById('diseaseFilter').value;
+  const s = document.getElementById('sortOrder').value;
+  filtered = allData.filter(r => {
+    const dis = cleanDisease(r.prediction);
+    return (!q || (r.patient_name || '').toLowerCase().includes(q)) && (!d || dis === d);
+  });
+  filtered.sort((a, b) => {
+    const da = new Date(a.date || 0), db2 = new Date(b.date || 0);
+    return s === 'asc' ? da - db2 : db2 - da;
+  });
+  cur = 1; render();
+};
+
+function render() {
+  const total = filtered.length;
+  const start = (cur - 1) * PER, end = Math.min(start + PER, total);
+  const slice = filtered.slice(start, end);
+  document.getElementById('countLabel').textContent = `${total} record${total !== 1 ? 's' : ''}`;
+  document.getElementById('pagInfo').textContent    = total === 0 ? 'No results' : `Showing ${start + 1}–${end} of ${total}`;
+  const tbody = document.getElementById('tableBody');
+  if (!total) { tbody.innerHTML = `<tr><td colspan="6">${emptyHTML()}</td></tr>`; renderPag(0, 0); return; }
+  tbody.innerHTML = slice.map((r, i) => {
+    const init    = (r.patient_name || '?')[0].toUpperCase();
+    const disease = cleanDisease(r.prediction || '');
+    const conf    = extractProb(r.prediction);
+    const audio   = r.audio_file_path || r.audio_file || '';
+    const idx     = (start + i + 1).toString().padStart(4, '0');
+    return `<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:.69rem;color:var(--m2)">${idx}</td>
+      <td><div class="pt-cell">
+        <div class="pt-av">${init}</div>
+        <div><div class="pt-name">${r.patient_name || 'Unknown'}</div><div class="pt-id">${r._id.slice(0, 8)}</div></div>
+      </div></td>
+      <td class="date-cell">${r.date || '—'}</td>
+      <td>${getBadge(disease)}</td>
+      <td><div class="conf-wrap">
+        <div class="conf-track"><div class="conf-fill" style="width:${conf}%"></div></div>
+        <span class="conf-val">${conf.toFixed(1)}%</span>
+      </div></td>
+      <td><div class="act-cell">
+        ${audio ? `<button class="act-btn" title="Play Audio" onclick="openAudio('${audio}','${escape(r.patient_name || '')}','${escape(disease)}')"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>` : ''}
+        <a class="act-btn" title="View Report" href="/history/report/generate/${r._id}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+        <a class="act-btn" title="Download Report" href="/history/report/generate/${r._id}?download=1"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
+      </div></td>
+    </tr>`;
+  }).join('');
+  renderPag(total, Math.ceil(total / PER));
+}
+
+function getBadge(name) {
+  const l = (name || '').toLowerCase();
+  if (l.includes('normal'))  return `<span class="badge b-normal">${name}</span>`;
+  if (l.includes('crackle')) return `<span class="badge b-crackle">${name}</span>`;
+  if (l.includes('wheez'))   return `<span class="badge b-wheeze">${name}</span>`;
+  if (l.includes('copd'))    return `<span class="badge b-copd">${name}</span>`;
+  return `<span class="badge b-default">${name || 'Unknown'}</span>`;
+}
+
+function renderPag(total, pages) {
+  const btns = document.getElementById('pagBtns'); btns.innerHTML = '';
+  if (pages <= 1) return;
+  const mk = (label, page, svg) => {
+    const b = document.createElement('button');
+    b.className = `pag-btn${page === cur ? ' active' : ''}`;
+    b.innerHTML = svg || label; b.disabled = page < 1 || page > pages;
+    b.onclick = () => { cur = page; render(); }; btns.appendChild(b);
+  };
+  mk('', cur - 1, '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>');
+  getRange(cur, pages).forEach(p =>
+    p === '…'
+      ? btns.appendChild(Object.assign(document.createElement('button'), { className: 'pag-btn', disabled: true, textContent: '…' }))
+      : mk(p, p)
+  );
+  mk('', cur + 1, '<svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>');
+}
+
+function getRange(c, t) {
+  if (t <= 7) return Array.from({ length: t }, (_, i) => i + 1);
+  if (c <= 4) return [1, 2, 3, 4, 5, '…', t];
+  if (c >= t - 3) return [1, '…', t - 4, t - 3, t - 2, t - 1, t];
+  return [1, '…', c - 1, c, c + 1, '…', t];
+}
+
+function emptyHTML() {
+  return `<div class="empty"><div class="empty-ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div><div class="empty-title">No Records Found</div><p class="empty-sub">No analyses match your search. Try adjusting filters or <a href="/">run a new analysis</a>.</p></div>`;
+}
+function errHTML(msg) {
+  return `<tr><td colspan="6"><div class="empty"><div class="empty-ico" style="background:var(--r-l)"><svg viewBox="0 0 24 24" style="stroke:var(--r)"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><div class="empty-title">Failed to load</div><p class="empty-sub">${msg}</p></div></td></tr>`;
+}
+
+window.openAudio = (file, name, diag) => {
+  document.getElementById('popupName').textContent = unescape(name);
+  document.getElementById('popupDiag').textContent = unescape(diag);
+  const a = document.getElementById('popupAudio');
+  a.src = '/history/audio/' + file; a.load();
+  document.getElementById('audioPopup').classList.add('open');
+};
+window.closeAudio = () => {
+  document.getElementById('audioPopup').classList.remove('open');
+  const a = document.getElementById('popupAudio'); a.pause(); a.src = '';
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAudio(); });
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     AI CHATBOT — reads window._doctorEmail set by the main module above.
+     No duplicate Firebase init needed.
+════════════════════════════════════════════════════════════════ -->
+<script>
+// Chart registry to allow destruction before re-creation
+const _charts = {};
+
+window.toggleChat = () => document.getElementById('aiPanel').classList.toggle('open');
+window.askChip    = (el) => { document.getElementById('aipInput').value = el.textContent; sendMsg(); };
+
+window.sendMsg = async () => {
+  const inp      = document.getElementById('aipInput');
+  const question = inp.value.trim();
+  if (!question) return;
+  inp.value = '';
+
+  // ── Read the email that the main Firebase module stored globally ──
+  const email = window._doctorEmail || '';
+
+  addMsg('user', question);
+  showTyping();
+  document.getElementById('aipSend').disabled = true;
+
+  try {
+    const res  = await fetch('/doctor-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, doctor_email: email })
+    });
+    const data = await res.json();
+    removeTyping();
+    addMsg('ai', data.answer || 'Sorry, I could not generate an answer.', data.chart);
+  } catch {
+    removeTyping();
+    addMsg('ai', '⚠️ Network error. Is the server running?');
+  } finally {
+    document.getElementById('aipSend').disabled = false;
+  }
+};
+
+function addMsg(role, md, chart = null) {
+  const msgs = document.getElementById('aipMessages');
+  const wrap = document.createElement('div');
+  wrap.className = `aip-msg ${role}`;
+
+  const av = document.createElement('div');
+  av.className  = 'aip-av';
+  av.textContent = role === 'ai' ? 'AI' : 'Dr';
+
+  const bub = document.createElement('div');
+  bub.className = 'aip-bubble';
+  bub.innerHTML = mdToHtml(md);
+
+  // Render chart if provided
+  if (chart && chart.data && Object.keys(chart.data).length > 0) {
+    const cw     = document.createElement('div');
+    cw.className = 'aip-chart-wrap';
+    const canvas = document.createElement('canvas');
+    const cid    = 'chart_' + Date.now();
+    canvas.id    = cid;
+    cw.appendChild(canvas);
+    bub.appendChild(cw);
+
+    if (_charts[cid]) _charts[cid].destroy();
+
+    const labels = Object.keys(chart.data);
+    const values = Object.values(chart.data);
+    const pal    = ['#06d6a0','#00b4d8','#7b2ff7','#f72585','#ffd166','#3B82F6','#EF4444','#8B5CF6'];
+
+    setTimeout(() => {
+      _charts[cid] = new Chart(canvas.getContext('2d'), {
+        type: chart.type === 'bar' ? 'bar' : 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: pal.slice(0, labels.length),
+            borderWidth: chart.type === 'bar' ? 0 : 2,
+            borderColor: '#fff',
+            borderRadius: chart.type === 'bar' ? 6 : 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: chart.type === 'bar' ? 'top' : 'bottom',
+              labels: { font: { size: 11, family: 'DM Sans' }, boxWidth: 12 }
+            },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y ?? ctx.parsed}` } }
+          },
+          scales: chart.type === 'bar'
+            ? { x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 } } } }
+            : {}
+        }
+      });
+    }, 50);
+  }
+
+  wrap.appendChild(av);
+  wrap.appendChild(bub);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('aipMessages');
+  const el   = document.createElement('div');
+  el.className = 'aip-msg ai aip-typing';
+  el.id = 'aipTyping';
+  el.innerHTML = '<div class="aip-av">AI</div><div class="aip-bubble"><span class="aip-dot"></span><span class="aip-dot"></span><span class="aip-dot"></span></div>';
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  document.getElementById('aipTyping')?.remove();
+}
+
+function mdToHtml(t) {
+  if (!t) return '';
+  return t
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul style="padding-left:16px;margin:6px 0">${s}</ul>`)
+    .replace(/\n/g, '<br>');
+}
+</script>
+
+</body>
+</html>
