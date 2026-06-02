@@ -1123,7 +1123,14 @@ if(yEl)yEl.textContent=new Date().getFullYear();
 <script type="module">
   import{initializeApp}from"https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
   import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-  const cfg={apiKey:"AIzaSyAaEJRIVbN7kadduBIw2ULKETr0ShKysXQ",authDomain:"lung-login.firebaseapp.com",projectId:"lung-login",storageBucket:"lung-login.firebasestorage.app",messagingSenderId:"357222360735",appId:"1:357222360735:web:e222d8c9b6121ae77ea4aa"};
+  const cfg={
+    apiKey: "{{ FIREBASE_API_KEY }}",
+    authDomain: "{{ FIREBASE_AUTH_DOMAIN }}",
+    projectId: "{{ FIREBASE_PROJECT_ID }}",
+    storageBucket: "{{ FIREBASE_STORAGE_BUCKET }}",
+    messagingSenderId: "{{ FIREBASE_MESSAGING_SENDER_ID }}",
+    appId: "{{ FIREBASE_APP_ID }}"
+  };
   let app,auth;
   try{app=initializeApp(cfg);auth=getAuth(app);}catch(e){console.error(e);}
   if(auth){

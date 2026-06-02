@@ -17,6 +17,10 @@ import os
 import re
 import requests
 from typing import Dict, List, Optional, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ── OpenRouter configuration ─────────────────────────────────────────
 

@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 import shutil
 import re
 from datetime import datetime
@@ -21,7 +26,19 @@ import ai_assistant
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
+SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY")
+if not SERVICE_ACCOUNT_PATH:
+    SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
+else:
+    if not os.path.isabs(SERVICE_ACCOUNT_PATH):
+        cwd_path = os.path.abspath(SERVICE_ACCOUNT_PATH)
+        file_parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", SERVICE_ACCOUNT_PATH))
+        if os.path.exists(cwd_path):
+            SERVICE_ACCOUNT_PATH = cwd_path
+        elif os.path.exists(file_parent_path):
+            SERVICE_ACCOUNT_PATH = file_parent_path
+        else:
+            SERVICE_ACCOUNT_PATH = cwd_path
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
@@ -39,6 +56,17 @@ PATIENT_REPORTS_FOLDER = os.path.join(UPLOAD_FOLDER_temp, "patient_reports")
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+@app.context_processor
+def inject_firebase_config():
+    return {
+        'FIREBASE_API_KEY': os.getenv('FIREBASE_API_KEY', ''),
+        'FIREBASE_AUTH_DOMAIN': os.getenv('FIREBASE_AUTH_DOMAIN', ''),
+        'FIREBASE_PROJECT_ID': os.getenv('FIREBASE_PROJECT_ID', ''),
+        'FIREBASE_STORAGE_BUCKET': os.getenv('FIREBASE_STORAGE_BUCKET', ''),
+        'FIREBASE_MESSAGING_SENDER_ID': os.getenv('FIREBASE_MESSAGING_SENDER_ID', ''),
+        'FIREBASE_APP_ID': os.getenv('FIREBASE_APP_ID', ''),
+    }
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PATIENT_AUDIO_FOLDER, exist_ok=True)

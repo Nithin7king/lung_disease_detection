@@ -7,3 +7,5 @@ __pycache__
 backend/serviceAccountKey.json
 __pycache__/
 *.pyc
+.env
+.env.local
