@@ -19,30 +19,30 @@ import rdc_model
 import ai_assistant
 
 # ── Firebase Admin ──────────────────────────────────────────────────
-# SETUP REQUIRED:
-# 1. In Firebase Console → Project Settings → Service accounts → Generate new private key
-# 2. Save the downloaded JSON as:  backend/serviceAccountKey.json
-# 3. pip install firebase-admin
+# Supports two credential modes:
+#   1. FIREBASE_SERVICE_ACCOUNT_JSON env var → JSON string of the key (for cloud deploys)
+#   2. File at backend/serviceAccountKey.json (for local dev)
+import json as _json
+import tempfile as _tempfile
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-SERVICE_ACCOUNT_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY")
-if not SERVICE_ACCOUNT_PATH:
-    SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
-else:
-    if not os.path.isabs(SERVICE_ACCOUNT_PATH):
-        cwd_path = os.path.abspath(SERVICE_ACCOUNT_PATH)
-        file_parent_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", SERVICE_ACCOUNT_PATH))
-        if os.path.exists(cwd_path):
-            SERVICE_ACCOUNT_PATH = cwd_path
-        elif os.path.exists(file_parent_path):
-            SERVICE_ACCOUNT_PATH = file_parent_path
-        else:
-            SERVICE_ACCOUNT_PATH = cwd_path
-
 if not firebase_admin._apps:
-    cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
-    firebase_admin.initialize_app(cred)
+    _sa_json_str = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
+    if _sa_json_str:
+        # Cloud deployment: load credentials from JSON string env var
+        _sa_dict = _json.loads(_sa_json_str)
+        _cred = credentials.Certificate(_sa_dict)
+    else:
+        # Local development: load from file
+        _sa_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY",
+                             os.path.join(os.path.dirname(__file__), "serviceAccountKey.json"))
+        if not os.path.isabs(_sa_path):
+            _abs1 = os.path.abspath(_sa_path)
+            _abs2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", _sa_path))
+            _sa_path = _abs1 if os.path.exists(_abs1) else _abs2
+        _cred = credentials.Certificate(_sa_path)
+    firebase_admin.initialize_app(_cred)
 
 db = firestore.client()
 COLLECTION = "analyses"
