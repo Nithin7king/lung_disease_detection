@@ -138,7 +138,9 @@ def analyse():
 
     url2 = os.path.join("static", "uploads")
     url = os.path.join(url2, filename)
-    absolute_url = os.path.abspath(url)
+    # Always resolve paths relative to the backend directory (app.py location)
+    # so they work correctly on Render/cloud where cwd may differ
+    absolute_url = os.path.join(root_folder, "static", "uploads", filename)
 
     res_list = rdc_model.classificationResults(absolute_url)
 
@@ -147,7 +149,12 @@ def analyse():
     disease_name, probability = clean_prediction(prediction)
     confidence = probability  # use the actual model probability
 
-    audio1, sample_rate1 = lb.load(url, mono=True)
+    audio1, sample_rate1 = lb.load(absolute_url, mono=True)
+
+    # Absolute paths for saving generated images (safe on all platforms/deploy targets)
+    wave_img = os.path.join(root_folder, "static", "uploads", "outSoundWave.png")
+    mfcc_img = os.path.join(root_folder, "static", "uploads", "outSoundMFCC.png")
+    mel_img  = os.path.join(root_folder, "static", "uploads", "outSoundMel.png")
 
     # ── Graph 1: Waveform ────────────────────────────────────────────
     fig1, ax1 = plt.subplots(figsize=(8, 3))
@@ -158,7 +165,7 @@ def analyse():
     ax1.tick_params(colors='#7C6F9F')
     for spine in ax1.spines.values(): spine.set_edgecolor('#1C1C35')
     plt.tight_layout()
-    fig1.savefig("./static/uploads/outSoundWave.png", dpi=120, facecolor='#0B0B18', bbox_inches='tight')
+    fig1.savefig(wave_img, dpi=120, facecolor='#0B0B18', bbox_inches='tight')
     plt.close(fig1)
 
     # ── Graph 2: MFCC Spectrogram ────────────────────────────────────
@@ -171,7 +178,7 @@ def analyse():
     ax2.tick_params(colors='#7C6F9F')
     for spine in ax2.spines.values(): spine.set_edgecolor('#1C1C35')
     plt.tight_layout()
-    fig2.savefig("./static/uploads/outSoundMFCC.png", dpi=120, facecolor='#0B0B18', bbox_inches='tight')
+    fig2.savefig(mfcc_img, dpi=120, facecolor='#0B0B18', bbox_inches='tight')
     plt.close(fig2)
 
     # ── Graph 3: Mel Spectrogram ─────────────────────────────────────
@@ -186,7 +193,7 @@ def analyse():
     ax3.tick_params(colors='#7C6F9F')
     for spine in ax3.spines.values(): spine.set_edgecolor('#1C1C35')
     plt.tight_layout()
-    fig3.savefig("./static/uploads/outSoundMel.png", dpi=120, facecolor='#0B0B18', bbox_inches='tight')
+    fig3.savefig(mel_img, dpi=120, facecolor='#0B0B18', bbox_inches='tight')
 
     # ── Generate PDF Report ──────────────────────────────────────────
     from matplotlib.backends.backend_pdf import PdfPages
