@@ -19,33 +19,81 @@ import rdc_model
 import ai_assistant
 
 # ── Firebase Admin ──────────────────────────────────────────────────
-# Supports two credential modes:
-#   1. FIREBASE_SERVICE_ACCOUNT_JSON env var → JSON string of the key (for cloud deploys)
-#   2. File at backend/serviceAccountKey.json (for local dev)
+# Supports three credential modes (tried in order):
+#   1. FIREBASE_SERVICE_ACCOUNT_JSON env var → full JSON string (recommended for Render)
+#   2. FIREBASE_SERVICE_ACCOUNT_KEY env var  → full JSON string OR file path
+#   3. File at backend/serviceAccountKey.json (local dev fallback)
 import json as _json
-import tempfile as _tempfile
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-if not firebase_admin._apps:
-    _sa_json_str = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON")
-    if _sa_json_str:
-        # Cloud deployment: load credentials from JSON string env var
-        _sa_dict = _json.loads(_sa_json_str)
-        _cred = credentials.Certificate(_sa_dict)
-    else:
-        # Local development: load from file
-        _sa_path = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY",
-                             os.path.join(os.path.dirname(__file__), "serviceAccountKey.json"))
-        if not os.path.isabs(_sa_path):
-            _abs1 = os.path.abspath(_sa_path)
-            _abs2 = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", _sa_path))
-            _sa_path = _abs1 if os.path.exists(_abs1) else _abs2
-        _cred = credentials.Certificate(_sa_path)
-    firebase_admin.initialize_app(_cred)
+_db = None   # will be set if Firebase initializes successfully
 
-db = firestore.client()
-COLLECTION = "analyses"
+def _init_firebase():
+    global _db
+    if firebase_admin._apps:
+        _db = firestore.client()
+        return
+
+    cred_obj = None
+
+    # ── Mode 1: full JSON string in FIREBASE_SERVICE_ACCOUNT_JSON ──
+    _sa_json = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "").strip()
+    if _sa_json:
+        try:
+            cred_obj = credentials.Certificate(_json.loads(_sa_json))
+        except Exception as e:
+            print(f"[Firebase] FIREBASE_SERVICE_ACCOUNT_JSON parse error: {e}")
+
+    # ── Mode 2: FIREBASE_SERVICE_ACCOUNT_KEY (JSON string or file path) ──
+    if cred_obj is None:
+        _sa_key = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY", "").strip()
+        if _sa_key:
+            # Try treating it as a JSON string first
+            if _sa_key.startswith("{"):
+                try:
+                    cred_obj = credentials.Certificate(_json.loads(_sa_key))
+                except Exception as e:
+                    print(f"[Firebase] FIREBASE_SERVICE_ACCOUNT_KEY JSON parse error: {e}")
+            else:
+                # Treat as file path — resolve relative to backend dir
+                _path = _sa_key if os.path.isabs(_sa_key) else \
+                        os.path.join(os.path.dirname(__file__), _sa_key)
+                if os.path.exists(_path):
+                    try:
+                        cred_obj = credentials.Certificate(_path)
+                    except Exception as e:
+                        print(f"[Firebase] Key file load error: {e}")
+                else:
+                    print(f"[Firebase] Key file not found: {_path}")
+
+    # ── Mode 3: local serviceAccountKey.json fallback ──
+    if cred_obj is None:
+        _local = os.path.join(os.path.dirname(__file__), "serviceAccountKey.json")
+        if os.path.exists(_local):
+            try:
+                cred_obj = credentials.Certificate(_local)
+            except Exception as e:
+                print(f"[Firebase] Local key file error: {e}")
+
+    if cred_obj is None:
+        print("[Firebase] WARNING: No valid credentials found — Firestore history will be disabled.")
+        print("[Firebase] Set the FIREBASE_SERVICE_ACCOUNT_JSON env var with the full JSON content.")
+        return
+
+    try:
+        firebase_admin.initialize_app(cred_obj)
+        _db = firestore.client()
+        print("[Firebase] Initialized successfully.")
+    except Exception as e:
+        print(f"[Firebase] Initialization error: {e}")
+
+_init_firebase()
+
+def _get_db():
+    """Return Firestore client, or None if Firebase is not configured."""
+    return _db
+
 
 
 root_folder = os.path.abspath(os.path.dirname(__file__))
@@ -74,7 +122,13 @@ os.makedirs(PATIENT_REPORTS_FOLDER, exist_ok=True)
 
 
 # ── Firestore helpers ───────────────────────────────────────────────
+COLLECTION = "analyses"
+
 def save_analysis_firestore(patient_name, prediction, confidence, audio_filename, report_filename, doctor_uid=None):
+    db = _get_db()
+    if db is None:
+        print("[Firestore] Skipping save — Firebase not configured.")
+        return
     date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     db.collection(COLLECTION).add({
         "patient_name": patient_name,
@@ -311,6 +365,9 @@ def generate_patient_report(doc_id):
     from matplotlib.backends.backend_pdf import PdfPages
 
     # ── Fetch from Firestore ─────────────────────────────────────────
+    db = _get_db()
+    if db is None:
+        abort(503)
     try:
         doc = db.collection(COLLECTION).document(doc_id).get()
         if not doc.exists:
@@ -477,6 +534,9 @@ def doctor_ai():
         return jsonify({"error": "Missing question or doctor_email"}), 400
 
     # ── Fetch this doctor's records ───────────────────────────────────
+    db = _get_db()
+    if db is None:
+        return jsonify({"error": "Firebase is not configured on this server."}), 503
     try:
         snap = db.collection(COLLECTION)\
                  .where("doctor_uid", "==", doctor_email)\
