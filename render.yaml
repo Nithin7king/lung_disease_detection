@@ -1,12 +1,10 @@
 services:
   - type: web
     name: lung-disease-detection
-    runtime: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --chdir backend app:app
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.13
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false   # set manually in Render dashboard
       - key: OPENROUTER_API_KEY

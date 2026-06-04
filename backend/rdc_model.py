@@ -4,8 +4,9 @@ from tensorflow.keras.models import load_model
 import numpy as np
 import librosa as lb
 
-# load trained model
-model = load_model('model/model.h5')
+# load trained model — use absolute path relative to this file to handle any cwd
+_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model', 'model.h5')
+model = load_model(_model_path)
 
 
 def fix_feature_size(feature, size=259):

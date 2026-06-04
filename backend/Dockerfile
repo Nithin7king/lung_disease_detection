@@ -1,24 +1,22 @@
-# Use the official Python 3.10.6 image
-FROM python:3.9-slim
+FROM python:3.10-slim
 
+# Install system dependencies needed by librosa (soundfile/libsndfile)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsndfile1-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory inside the container to /app
+# Set working directory
 WORKDIR /app
 
-# Copy the requirements.txt into the container
-COPY requirements.txt .
-
-# Install core dependencies.
-RUN apt-get update && apt-get install libsndfile1-dev -y
-
-# Install the dependencies from requirements.txt
+# Copy and install Python dependencies first (layer cache optimization)
+COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the code from the local 'backend' folder to /app in the container
-COPY . .
+# Copy the full backend application
+COPY backend/ ./
 
-# Expose the port your app run
+# Expose the port (Render injects $PORT at runtime)
 EXPOSE 5000
 
-# Set the command to run the app
-CMD ["python", "app.py"]
+# Run with gunicorn for production (same as the original Procfile)
+CMD gunicorn --bind 0.0.0.0:${PORT:-5000} app:app
